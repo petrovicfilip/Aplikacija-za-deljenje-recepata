@@ -180,6 +180,38 @@ def list_recipes(
 
     return {"skip": skip, "limit": limit, "results": rows}
 
+@router.get("/popular")
+def popular_recipes(
+    limit: int = Query(10, ge=1, le=50),
+    skip: int = Query(0, ge=0),
+    driver=Depends(get_driver),
+):
+    cypher = """
+    MATCH (r:Recipe)
+    OPTIONAL MATCH (u:User)-[:LIKES]->(r)
+    WITH r, count(u) AS likes
+    OPTIONAL MATCH (r)-[rel:HAS_INGREDIENT]->(i:Ingredient)
+    WITH r, likes, collect({
+      name: i.name,
+      amount: rel.amount,
+      unit: rel.unit
+    }) AS ingredients
+    RETURN r.id AS id,
+           r.title AS title,
+           r.description AS description,
+           likes,
+           ingredients
+    ORDER BY likes DESC, title ASC
+    SKIP $skip
+    LIMIT $limit;
+    """
+
+    with driver.session() as session:
+        rows = [rec.data() for rec in session.run(cypher, skip=skip, limit=limit)]
+
+    return {"skip": skip, "limit": limit, "results": rows}
+
+
 @router.patch("/{recipe_id}")
 def update_recipe(recipe_id: str, payload: RecipeUpdate, driver=Depends(get_driver)):
     rid = recipe_id.strip()
