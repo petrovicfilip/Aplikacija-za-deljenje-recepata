@@ -38,6 +38,7 @@ def norm_wanted_names(items: List[str]) -> List[str]:
 def search_recipes(
     ingredients: List[str] = Query(...),
     limit: int = Query(10, ge=1, le=50),
+    skip: int = Query(0, ge=0),
     driver=Depends(get_driver),
 ):
     wanted = norm_wanted_names(ingredients)
@@ -53,19 +54,25 @@ def search_recipes(
              count(DISTINCT i) AS score
         RETURN r.id AS id, r.title AS title, matched, score
         ORDER BY score DESC, title ASC
+        SKIP $skip
         LIMIT $limit
         """
 
     with driver.session() as session:
-        rows = [rec.data() for rec in session.run(cypher, wanted=wanted, limit=limit)]
+        rows = [
+            rec.data()
+            for rec in session.run(cypher, wanted=wanted, skip=skip, limit=limit)
+        ]
 
-    return {"wanted": wanted, "results": rows}
+    return {"wanted": wanted, "skip": skip, "limit": limit, "results": rows}
+
 
 
 @router.get("/search_csv")
 def search_recipes_csv(
     ingredients: str = Query(..., description="Npr: ?ingredients=jaja,sir,testenina"),
     limit: int = Query(10, ge=1, le=50),
+    skip: int = Query(0, ge=0),
     driver=Depends(get_driver),
 ):
     wanted = norm_wanted_names(ingredients.split(","))
@@ -81,13 +88,17 @@ def search_recipes_csv(
              count(DISTINCT i) AS score
         RETURN r.id AS id, r.title AS title, matched, score
         ORDER BY score DESC, title ASC
+        SKIP $skip
         LIMIT $limit
         """
 
     with driver.session() as session:
-        rows = [rec.data() for rec in session.run(cypher, wanted=wanted, limit=limit)]
+        rows = [
+            rec.data()
+            for rec in session.run(cypher, wanted=wanted, skip=skip, limit=limit)
+        ]
 
-    return {"wanted": wanted, "results": rows}
+    return {"wanted": wanted, "skip": skip, "limit": limit, "results": rows}
 
 # upsert, pa idem MERGE ne CREATE
 @router.post("", status_code=201)

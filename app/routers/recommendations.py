@@ -1,0 +1,73 @@
+from fastapi import APIRouter, Depends, HTTPException, Query
+from app.db.neo4j_driver import get_driver
+
+router = APIRouter(prefix="/recommendations", tags=["recommendations"])
+# da dodam fallback: ako nema likes, preporuci "popular" (najvise liked)???
+
+@router.get("/{user_id}")
+def recommend_for_user(
+    user_id: str,
+    limit: int = Query(10, ge=1, le=50),
+    skip: int = Query(0, ge=0),
+    driver=Depends(get_driver),
+):
+
+    uid = user_id.strip()
+    if not uid:
+        raise HTTPException(status_code=400, detail="user_id is required")
+
+    cypher = """
+    // 1) u = user
+    MATCH (u:User {id: $uid})
+
+    // 2) recipes koje user vec lajkuje (da ih izbacimo iz preporuka)
+    OPTIONAL MATCH (u)-[:LIKES]->(liked:Recipe)
+    WITH u, collect(DISTINCT liked) AS likedRecipes
+
+    // 3) sastojci iz lajkovanih recepata = "profil"
+    UNWIND likedRecipes AS lr
+    MATCH (lr)-[:HAS_INGREDIENT]->(pi:Ingredient)
+    WITH u, likedRecipes, collect(DISTINCT toLower(pi.name)) AS profile
+
+    // ako user nema lajkovane recepte, nema profila -> nema preporuka
+    WHERE size(profile) > 0
+
+    // 4) kandidati = svi ostali recepti koje user nije lajkovao
+    MATCH (cand:Recipe)
+    WHERE NOT cand IN likedRecipes
+
+    // 5) preklapanje po sastojcima
+    MATCH (cand)-[rel:HAS_INGREDIENT]->(ci:Ingredient)
+    WITH cand,
+         profile,
+         collect(DISTINCT {
+           name: toLower(ci.name),
+           amount: rel.amount,
+           unit: rel.unit
+         }) AS candIngredients,
+         count(DISTINCT CASE WHEN toLower(ci.name) IN profile THEN ci END) AS score
+
+    WHERE score > 0
+
+    RETURN cand.id AS id,
+           cand.title AS title,
+           cand.description AS description,
+           score,
+           candIngredients AS ingredients
+    ORDER BY score DESC, title ASC
+    SKIP $skip
+    LIMIT $limit;
+    """
+
+    with driver.session() as session:
+        rows = [
+            r.data()
+            for r in session.run(
+                cypher,
+                uid=uid,
+                limit=limit,
+                skip=skip
+            )
+        ]
+
+    return {"user_id": uid, "limit": limit, "results": rows}
