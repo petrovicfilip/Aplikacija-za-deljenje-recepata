@@ -1,32 +1,35 @@
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query
 from app.db.neo4j_driver import get_driver
-from app.schemas.user import UserCreate
+from app.schemas.user import UserCreate, UserOut, UserCreateResponse
 
 router = APIRouter(prefix="/users", tags=["users"])
 
-@router.post("", status_code=201)
+
+@router.post("", status_code=201, response_model=UserCreateResponse)
 def create_user(payload: UserCreate, driver=Depends(get_driver)):
     uid = str(uuid.uuid4())
-    username = payload.username.strip()
-
-    if not username:
-        raise HTTPException(status_code=400, detail="username is required")
+    username = payload.username  # vec strip+lower iz DTO
 
     cypher = """
-    // username unique: ako postoji, ne pravimo duplikat
     MERGE (u:User {username: $username})
     ON CREATE SET u.id = $uid
-    RETURN u.id AS id, u.username AS username;
+    RETURN u.id AS id,
+           u.username AS username,
+           (u.id = $uid) AS created;
     """
 
     with driver.session() as session:
         rec = session.run(cypher, uid=uid, username=username).single()
 
-    # za sad vracam postojeceg usera ako ga ima taj username
-    return rec.data() if rec else None
+    if not rec:
+        raise HTTPException(status_code=500, detail="Failed to create user")
 
-@router.get("/{user_id}")
+    data = rec.data()
+    return {"user": {"id": data["id"], "username": data["username"]}, "created": data["created"]}
+
+
+@router.get("/{user_id}", response_model=UserOut)
 def get_user(user_id: str, driver=Depends(get_driver)):
     uid = user_id.strip()
     if not uid:
@@ -45,7 +48,8 @@ def get_user(user_id: str, driver=Depends(get_driver)):
 
     return rec.data()
 
-@router.get("")
+
+@router.get("", response_model=dict)
 def list_users(
     limit: int = Query(20, ge=1, le=100),
     skip: int = Query(0, ge=0),

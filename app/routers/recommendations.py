@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from app.db.neo4j_driver import get_driver
 
 router = APIRouter(prefix="/recommendations", tags=["recommendations"])
-# da dodam fallback: ako nema likes, preporuci "popular" (najvise liked)???
 
 @router.get("/{user_id}")
 def recommend_for_user(
