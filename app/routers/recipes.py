@@ -3,7 +3,7 @@ from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from app.db.neo4j_driver import get_driver
-from app.schemas.recipe import RecipeCreate, RecipeUpdate, IngredientInput, RecipeIdsRequest
+from app.schemas.recipe import RecipeCreate, RecipeUpdate, IngredientInput, RecipeIdsRequest, RecipeLikesCountOut
 
 router = APIRouter(prefix="/recipes", tags=["recipes"])
 
@@ -166,6 +166,26 @@ def recipes_by_ids(payload: RecipeIdsRequest, driver=Depends(get_driver)):
         rows = [rec.data() for rec in session.run(cypher, ids=ids)]
 
     return {"results": rows}
+
+@router.get("/{recipe_id}/likes_count", response_model=RecipeLikesCountOut)
+def recipe_likes_count(recipe_id: str, driver=Depends(get_driver)):
+    rid = recipe_id.strip()
+    if not rid:
+        raise HTTPException(status_code=400, detail="recipe_id is required")
+
+    cypher = """
+    MATCH (r:Recipe {id: $rid})
+    OPTIONAL MATCH (:User)-[:LIKES]->(r)
+    RETURN r.id AS recipe_id, count(*) AS likes;
+    """
+
+    with driver.session() as session:
+        rec = session.run(cypher, rid=rid).single()
+
+    if not rec:
+        raise HTTPException(status_code=404, detail="Recipe not found")
+
+    return rec.data()
 
 
 # -----------------------------

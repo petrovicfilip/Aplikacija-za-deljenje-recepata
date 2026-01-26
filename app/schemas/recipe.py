@@ -97,3 +97,7 @@ class RecipeUpdate(BaseModel):
 
 class RecipeIdsRequest(BaseModel):
     ids: List[str] = Field(..., min_length=1)
+
+class RecipeLikesCountOut(BaseModel):
+    recipe_id: str
+    likes: int
