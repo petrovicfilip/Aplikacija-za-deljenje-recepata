@@ -39,10 +39,11 @@ def search_recipes(
     wanted = norm_wanted_names(ingredients)
     if not wanted:
         raise HTTPException(status_code=400, detail="ingredients must not be empty")
-
+    # !!! testtttttttttttttttttt
     cypher = """
     WITH $wanted AS wanted
     MATCH (r:Recipe)-[rel:HAS_INGREDIENT]->(i:Ingredient)
+    OPTIONAL MATCH (r)-[:IN_CATEGORY]->(c:Category)
     WHERE toLower(i.name) IN wanted
     WITH r,
          collect(DISTINCT {
@@ -53,6 +54,7 @@ def search_recipes(
          count(DISTINCT i) AS score
     RETURN r.id AS id,
            r.title AS title,
+           r.category as category,
            matched,
            score
     ORDER BY score DESC, title ASC
@@ -80,6 +82,7 @@ def search_recipes_csv(
     cypher = """
     WITH $wanted AS wanted
     MATCH (r:Recipe)-[rel:HAS_INGREDIENT]->(i:Ingredient)
+    OPTIONAL MATCH (r)-[:IN_CATEGORY]->(c:Category)
     WHERE toLower(i.name) IN wanted
     WITH r,
          collect(DISTINCT {
@@ -90,6 +93,7 @@ def search_recipes_csv(
          count(DISTINCT i) AS score
     RETURN r.id AS id,
            r.title AS title,
+           r.category as category,
            matched,
            score
     ORDER BY score DESC, title ASC
@@ -117,8 +121,9 @@ def popular_recipes(
     MATCH (r:Recipe)
     OPTIONAL MATCH (u:User)-[:LIKES]->(r)
     WITH r, count(u) AS likes
+    OPTIONAL MATCH (r)-[:IN_CATEGORY]->(c:Category)
     OPTIONAL MATCH (r)-[rel:HAS_INGREDIENT]->(i:Ingredient)
-    WITH r, likes, collect({
+    WITH r, likes, c, collect({
       name: i.name,
       amount: rel.amount,
       unit: rel.unit
@@ -126,6 +131,7 @@ def popular_recipes(
     RETURN r.id AS id,
            r.title AS title,
            r.description AS description,
+           c.name AS category,
            likes,
            ingredients
     ORDER BY likes DESC, title ASC
@@ -149,8 +155,9 @@ def recipes_by_ids(payload: RecipeIdsRequest, driver=Depends(get_driver)):
     UNWIND range(0, size(ids)-1) AS idx
     WITH idx, ids[idx] AS rid
     MATCH (r:Recipe {id: rid})
+    OPTIONAL MATCH (r)-[:IN_CATEGORY]->(c:Category)
     OPTIONAL MATCH (r)-[rel:HAS_INGREDIENT]->(i:Ingredient)
-    WITH idx, r, collect({
+    WITH idx, r, c, collect({
       name: i.name,
       amount: rel.amount,
       unit: rel.unit
@@ -158,6 +165,7 @@ def recipes_by_ids(payload: RecipeIdsRequest, driver=Depends(get_driver)):
     RETURN r.id AS id,
            r.title AS title,
            r.description AS description,
+           c.name AS category,
            ingredients
     ORDER BY idx ASC;
     """
@@ -198,9 +206,12 @@ def create_recipe(payload: RecipeCreate, driver=Depends(get_driver)):
     title = payload.title
     description = payload.description
     ings = norm_ingredients(payload.ingredients)
+    category = payload.category
 
     cypher = """
+    MATCH (c:Category {name: $category})
     CREATE (r:Recipe {id: $rid, title: $title, description: $description})
+    MERGE (r)-[:IN_CATEGORY]->(c)
     WITH r
     UNWIND $ings AS ing
     MERGE (i:Ingredient {name: ing.name})
@@ -218,8 +229,12 @@ def create_recipe(payload: RecipeCreate, driver=Depends(get_driver)):
             rid=rid,
             title=title,
             description=description,
-            ings=ings
+            ings=ings,
+            category=category
         ).single()
+
+    if not rec:
+        raise HTTPException(status_code=400, detail="Invalid category")
 
     return {"recipe": rec.data() if rec else None}
 
@@ -232,8 +247,9 @@ def list_recipes(
 ):
     cypher = """
     MATCH (r:Recipe)
+    OPTIONAL MATCH (r)-[:IN_CATEGORY]->(c:Category)
     OPTIONAL MATCH (r)-[rel:HAS_INGREDIENT]->(i:Ingredient)
-    WITH r, collect({
+    WITH r, c, collect({
       name: i.name,
       amount: rel.amount,
       unit: rel.unit
@@ -241,6 +257,7 @@ def list_recipes(
     RETURN r.id AS id,
            r.title AS title,
            r.description AS description,
+           c.name AS category,
            ingredients
     ORDER BY title ASC
     SKIP $skip
@@ -261,10 +278,12 @@ def get_recipe(recipe_id: str, driver=Depends(get_driver)):
 
     cypher = """
     MATCH (r:Recipe {id: $rid})
+    OPTIONAL MATCH (r)-[:IN_CATEGORY]->(c:Category)
     OPTIONAL MATCH (r)-[rel:HAS_INGREDIENT]->(i:Ingredient)
     RETURN r.id AS id,
            r.title AS title,
            r.description AS description,
+           c.name AS category,
            collect({
              name: i.name,
              amount: rel.amount,
@@ -292,8 +311,9 @@ def update_recipe(recipe_id: str, payload: RecipeUpdate, driver=Depends(get_driv
     title = payload.title
     description = payload.description
     ings = norm_ingredients(payload.ingredients) if payload.ingredients is not None else None
+    category = payload.category
 
-    if title is None and payload.description is None and ings is None:
+    if title is None and payload.description is None and ings is None and category is None:
         raise HTTPException(status_code=400, detail="Nothing to update")
 
     if title is not None:
@@ -317,6 +337,30 @@ def update_recipe(recipe_id: str, payload: RecipeUpdate, driver=Depends(get_driv
             ok = session.run(cypher_desc, rid=rid, description=description).single()
         if not ok:
             raise HTTPException(status_code=404, detail="Recipe not found")
+
+    if category is not None:
+        cypher_cat = """
+        MATCH (r:Recipe {id: $rid})
+        MATCH (c:Category {name: $category})
+        OPTIONAL MATCH (r)-[old:IN_CATEGORY]->(:Category)
+        DELETE old
+        MERGE (r)-[:IN_CATEGORY]->(c)
+        RETURN r.id AS id;
+        """
+        with driver.session() as session:
+            ok = session.run(cypher_cat, rid=rid, category=category).single()
+        if not ok:
+            # moze biti Recipe not found ili Category ne postoji
+            # prvo proverimo da li recipe postoji
+            check = """
+            MATCH (r:Recipe {id: $rid})
+            RETURN r.id AS id;
+            """
+            with driver.session() as session:
+                exists = session.run(check, rid=rid).single()
+            if not exists:
+                raise HTTPException(status_code=404, detail="Recipe not found")
+            raise HTTPException(status_code=400, detail="Invalid category")
 
     if ings is not None:
         cypher_ings = """

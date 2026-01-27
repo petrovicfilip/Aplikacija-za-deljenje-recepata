@@ -3,6 +3,7 @@ from app.db.neo4j_driver import init_driver, close_driver, get_driver
 from app.routers.recipes import router as recipes_router
 from app.routers.users import router as users_router
 from app.routers.likes import router as likes_router
+from app.routers.categories import router as categories_router
 from app.routers.recommendations import router as recommendations_router
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -46,3 +47,4 @@ app.include_router(recipes_router)
 app.include_router(users_router)
 app.include_router(likes_router)
 app.include_router(recommendations_router)
+app.include_router(categories_router)
