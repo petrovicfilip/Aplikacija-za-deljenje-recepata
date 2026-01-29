@@ -31,6 +31,8 @@ export const api = {
     http(`/users?skip=${skip}&limit=${limit}`),
 
   // recipes
+  getRecipe: (id) => http(`/recipes/${encodeURIComponent(id)}`),
+
   popular: (skip = 0, limit = 20) =>
     http(`/recipes/popular?skip=${skip}&limit=${limit}`),
 
@@ -92,5 +94,17 @@ export const api = {
     http(`/users/${encodeURIComponent(userId)}/recipes/${encodeURIComponent(recipeId)}`, {
       method: "DELETE",
     }),
+
+  getRecipeLikesCount: (recipeId) => http(`/recipes/${encodeURIComponent(recipeId)}/likes_count`),
+
+  likeRecipe: (payload) =>
+    http(`/likes`, { method: "POST", body: JSON.stringify(payload) }),
+
+  unlikeRecipe: (payload) =>
+    http(`/likes`, { method: "DELETE", body: JSON.stringify(payload) }),
+
+  likesIdsPage: (userId, skip=0, limit=20) =>
+    http(`/likes/users/${encodeURIComponent(userId)}/ids?limit=${limit}&skip=${skip}`),
+
 
 };

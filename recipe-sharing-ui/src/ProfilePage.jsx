@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "./api";
 import styles from "./ProfilePage.module.css";
+import { useNavigate } from "react-router-dom";
+
 
 const HARD_USER_ID = "fc184998-e09e-451b-925b-2f496f279b50";
 
-function Card({ children, className = "" }) {
-  return <div className={`${styles.card} ${className}`}>{children}</div>;
+function Card({ children, className = "", ...props}) {
+  return <div className={`${styles.card} ${className}`} {...props}>{children}</div>;
 }
 
 function Button({ variant = "primary", className = "", ...props }) {
@@ -44,19 +46,39 @@ function IngredientRow({ ing, onChange, onRemove, canRemove }) {
       <Input
         placeholder="Količina"
         type="number"
+        min="0"
+        step="any"
         value={ing.amount ?? ""}
-        onChange={(e) =>
-          onChange({
-            ...ing,
-            amount: e.target.value === "" ? null : Number(e.target.value),
-          })
-        }
+        onChange={(e) => {
+          const raw = e.target.value;
+          if (raw === "") {
+            // ako obrise kolicinu, obrisi i unit
+            onChange({ ...ing, amount: null, unit: "" });
+            return;
+          }
+
+          const n = Number(raw);
+          const safe = Number.isFinite(n) ? Math.max(0, n) : 0;
+
+          // ako je 0 ili pozitivno
+          onChange({ ...ing, amount: safe });
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "-" || e.key === "e" || e.key === "E") e.preventDefault();
+        }}
       />
+
       <Input
         placeholder="Jedinica (g/ml/kom)"
         value={ing.unit ?? ""}
-        onChange={(e) => onChange({ ...ing, unit: e.target.value })}
+        disabled={ing.amount === null || ing.amount === 0}
+        onChange={(e) => {
+          // ne dozvoli upis jedinice ako nema kolicine
+          if (ing.amount === null || ing.amount === 0) return;
+          onChange({ ...ing, unit: e.target.value });
+        }}
       />
+
       <Button
         variant="ghost"
         className={styles.iconBtn}
@@ -98,6 +120,8 @@ export default function ProfilePage() {
 
   const [savingEdit, setSavingEdit] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
+  const navigate = useNavigate();
+
 
 
 
@@ -232,9 +256,6 @@ async function saveEdit() {
         .filter((x) => x.name),
     };
 
-    // Bitno: ako ne želiš da updateuješ sve, možeš slati samo ono što je promenjeno.
-    // Za početak je OK da šalješ sve (title/description/category/ingredients).
-
     await api.updateRecipeForUser(HARD_USER_ID, editing.id, payload);
 
     closeEdit();
@@ -255,7 +276,6 @@ async function deleteRecipe(recipeId) {
 
   try {
     await api.deleteRecipeForUser(HARD_USER_ID, recipeId);
-    // refresh listu
     setRecipes([]);
     setSkip(0);
     await loadProfile(true);
@@ -279,8 +299,8 @@ useEffect(() => {
     <div className={styles.page}>
       <header className={styles.header}>
         <div>
-          <div className={styles.kicker}>Recipe Sharing</div>
-          <h1 className={styles.title}>Profil</h1>
+          <div className={styles.kicker}>Aplikacija za deljenje recepata</div>
+          <h1 className={styles.title}>Profil korisnika</h1>
         </div>
         <div className={styles.headerRight}>
           {loading ? <Pill> "Učitavanje…" </Pill> : ""}
@@ -414,7 +434,13 @@ useEffect(() => {
 
       <div className={styles.recipes}>
         {recipes.map((r) => (
-          <Card key={r.id} className={styles.recipeCard}>
+          <Card key={r.id} 
+            className={styles.recipeCard}
+              onClick={() => navigate(`/recipes/${r.id}`)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === "Enter" && navigate(`/recipes/${r.id}`)
+              }>
             <div className={styles.recipeTop}>
               <div className={styles.recipeTitle}>{r.title}</div>
 
@@ -426,7 +452,7 @@ useEffect(() => {
                     className={styles.iconBtn}
                     type="button"
                     title="Izmeni"
-                    onClick={() => openEdit(r)}
+                    onClick={(e) => { e.stopPropagation(); openEdit(r); }}
                   >
                     ✎
                   </Button>
@@ -437,7 +463,7 @@ useEffect(() => {
                     type="button"
                     title="Obriši"
                     disabled={deletingId === r.id}
-                    onClick={() => deleteRecipe(r.id)}
+                    onClick={(e) => { e.stopPropagation(); deleteRecipe(r.id); }}
                   >
                     🗑
                   </Button>
@@ -490,7 +516,13 @@ useEffect(() => {
 
               <div className={styles.recipes}>
                 {likedRecipes.map((r) => (
-                  <Card key={r.id} className={styles.recipeCard}>
+                  <Card key={r.id} 
+                    className={styles.recipeCard}
+                      onClick={() => navigate(`/recipes/${r.id}`)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => e.key === "Enter" && navigate(`/recipes/${r.id}`)
+                      }>
                     <div className={styles.recipeTop}>
                       <div className={styles.recipeTitle}>{r.title}</div>
                       <span className={styles.badge}>{r.category ?? "uncategorized"}</span>
@@ -605,7 +637,6 @@ useEffect(() => {
     </div>
   </div>
 ) : null}
-
     </div>
   );
 }

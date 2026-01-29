@@ -183,8 +183,8 @@ def recipe_likes_count(recipe_id: str, driver=Depends(get_driver)):
 
     cypher = """
     MATCH (r:Recipe {id: $rid})
-    OPTIONAL MATCH (:User)-[:LIKES]->(r)
-    RETURN r.id AS recipe_id, count(*) AS likes;
+    OPTIONAL MATCH (:User)-[l:LIKES]->(r)
+    RETURN r.id AS recipe_id, count(l) AS likes;
     """
 
     with driver.session() as session:
@@ -278,17 +278,15 @@ def get_recipe(recipe_id: str, driver=Depends(get_driver)):
 
     cypher = """
     MATCH (r:Recipe {id: $rid})
+    OPTIONAL MATCH (u:User)-[:CREATED]->(r)
     OPTIONAL MATCH (r)-[:IN_CATEGORY]->(c:Category)
     OPTIONAL MATCH (r)-[rel:HAS_INGREDIENT]->(i:Ingredient)
     RETURN r.id AS id,
            r.title AS title,
            r.description AS description,
            c.name AS category,
-           collect({
-             name: i.name,
-             amount: rel.amount,
-             unit: rel.unit
-           }) AS ingredients;
+           { id: u.id, username: u.username } AS created_by,
+           collect({ name: i.name, amount: rel.amount, unit: rel.unit }) AS ingredients;
     """
 
     with driver.session() as session:

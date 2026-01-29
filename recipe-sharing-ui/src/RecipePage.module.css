@@ -1,0 +1,71 @@
+.page { padding: 8px 24px 24px; max-width: 900px; margin: 0 auto; }
+
+
+.topbar { margin-bottom: 12px; }
+.back { text-decoration: none; color: inherit; opacity: .8; }
+
+.card {
+  background: #fff;
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 10px 25px rgba(0,0,0,.06);
+}
+
+.header { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.title { margin: 0; font-size: 28px; }
+.badge { font-size: 12px; padding: 6px 10px; border-radius: 999px; background: rgba(0,0,0,.06); }
+
+.meta { margin-top: 8px; }
+.desc { margin-top: 12px; line-height: 1.5; }
+
+.sectionTitle { margin-top: 18px; font-weight: 800; }
+.list { margin: 10px 0 0; padding-left: 18px; }
+.muted { opacity: .7; }
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.likeBtn {
+  border: 1px solid rgba(0,0,0,.10);
+  background: rgba(0,0,0,.02);
+  padding: 6px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  font: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.likeBtn:hover { background: rgba(0,0,0,.04); }
+
+.likeBtn:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}
+
+.likeBtnActive {
+  background: rgba(0,0,0,.06);
+}
+
+.likeCount { font-weight: 700; }
+
+.deleteBtn {
+  border: 1px solid rgba(0,0,0,.12);
+  background: #fff;
+  padding: 6px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.deleteBtn:hover { background: rgba(0,0,0,.03); }
+
+.deleteBtn:disabled {
+  opacity: .6;
+  cursor: not-allowed;
+}

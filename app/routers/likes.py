@@ -114,7 +114,7 @@ def list_user_like_ids(
       LIMIT $limit
     }
 
-    RETURN total, collect(id) AS recipe_ids;
+    RETURN total, [x IN collect(id) WHERE x IS NOT NULL] AS recipe_ids;
     """
 
     with driver.session() as session:
@@ -128,5 +128,5 @@ def list_user_like_ids(
         "skip": skip,
         "limit": limit,
         "total": rec["total"],
-        "recipe_ids": rec["recipe_ids"],
+        "recipe_ids": rec["recipe_ids"] or [],
     }
