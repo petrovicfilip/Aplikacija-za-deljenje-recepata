@@ -85,7 +85,7 @@ def likes_count(user_id: str, driver=Depends(get_driver)):
 
     return {"user_id": uid, "total": rec["total"]}
 
-@router.get("/users/{user_id}", response_model=UserLikesIdsPageResponse)
+@router.get("/users/{user_id}/ids", response_model=UserLikesIdsPageResponse)
 def list_user_like_ids(
     user_id: str,
     limit: int = Query(20, ge=1, le=100),
