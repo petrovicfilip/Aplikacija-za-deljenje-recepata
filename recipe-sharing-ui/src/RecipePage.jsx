@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { api } from "./api";
-import styles from "./RecipePage.module.css";
-import formStyles from "./ProfilePage.module.css";
+import styles from "./styles/RecipePage.module.css";
+import formStyles from "./styles/ProfilePage.module.css";
+import { useCurrentUser } from "./CurrentUserContext";
+
 
 const HARD_USER_ID = "fc184998-e09e-451b-925b-2f496f279b50";
 
@@ -102,6 +104,8 @@ export default function RecipePage() {
   const [editCategory, setEditCategory] = useState("uncategorized");
   const [editIngredients, setEditIngredients] = useState([{ name: "", amount: null, unit: "" }]);
   const [savingEdit, setSavingEdit] = useState(false);
+  const { userId } = useCurrentUser();
+
 
 
   async function toggleLike() {
@@ -110,11 +114,11 @@ export default function RecipePage() {
     setErr("");
     try {
       if (!liked) {
-        await api.likeRecipe({ user_id: HARD_USER_ID, recipe_id: data.id });
+        await api.likeRecipe({ user_id: userId, recipe_id: data.id });
         setLiked(true);
         setLikesCount((x) => x + 1);
       } else {
-        await api.unlikeRecipe({ user_id: HARD_USER_ID, recipe_id: data.id });
+        await api.unlikeRecipe({ user_id: userId, recipe_id: data.id });
         setLiked(false);
         setLikesCount((x) => Math.max(0, x - 1));
       }
@@ -126,7 +130,7 @@ export default function RecipePage() {
   }
   
 
-  const isMine = data?.created_by?.id === HARD_USER_ID;
+  const isMine = data?.created_by?.id === userId;
 
   async function onDelete() {
     if (!isMine) return;
@@ -135,7 +139,7 @@ export default function RecipePage() {
     setDeleteBusy(true);
     setErr("");
     try {
-      await api.deleteRecipeForUser(HARD_USER_ID, data.id);
+      await api.deleteRecipeForUser(userId, data.id);
       navigate("/profile");
     } catch (e) {
       setErr(e.message || String(e));
@@ -197,7 +201,7 @@ export default function RecipePage() {
           .filter((x) => x.name),
       };
 
-      await api.updateRecipeForUser(HARD_USER_ID, data.id, payload);
+      await api.updateRecipeForUser(userId, data.id, payload);
 
       // reload recept
       const fresh = await api.getRecipe(data.id);
@@ -228,7 +232,7 @@ export default function RecipePage() {
         setLikesCount(lc.likes);
 
         // da li je user lajkovao 
-        const page = await api.likesIdsPage(HARD_USER_ID, 0, 100); 
+        const page = await api.likesIdsPage(userId, 0, 100); 
         const ids = page.recipe_ids || [];
         setLiked(ids.includes(id));
       } catch (e) {
@@ -237,7 +241,7 @@ export default function RecipePage() {
         setLoading(false);
       }
     })();
-  }, [id]);
+  }, [id, userId]);
 
   if (loading) return <div className={styles.page}>Učitavanje…</div>;
   if (err) return <div className={styles.page}>Greška: {err}</div>;
@@ -331,7 +335,7 @@ export default function RecipePage() {
                 <strong>{x.name}</strong>{" "}
                 {x.amount != null || x.unit ? (
                   <span className={styles.muted}>
-                    - {x.amount ?? ""}{x.unit ?? ""}
+                    - {x.amount ?? ""} {x.unit ?? ""}
                   </span>
                 ) : null}
               </li>

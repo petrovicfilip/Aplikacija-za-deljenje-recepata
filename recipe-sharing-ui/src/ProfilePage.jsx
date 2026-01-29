@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "./api";
-import styles from "./ProfilePage.module.css";
+import styles from "./styles/ProfilePage.module.css";
 import { useNavigate } from "react-router-dom";
 
-
+import { useCurrentUser } from "./CurrentUserContext";
 const HARD_USER_ID = "fc184998-e09e-451b-925b-2f496f279b50";
 
 function Card({ children, className = "", ...props}) {
@@ -122,20 +122,64 @@ export default function ProfilePage() {
   const [deletingId, setDeletingId] = useState(null);
   const navigate = useNavigate();
 
+  const { userId, setUserId } = useCurrentUser();
 
+  const [allUsers, setAllUsers] = useState([]);
+  const [usersLoading, setUsersLoading] = useState(false);
 
 
   const canCreate = useMemo(() => title.trim().length > 0, [title]);
+
+  async function loadUsers() {
+    setUsersLoading(true);
+    try {
+      const data = await api.listUsers(0, 50);
+      setAllUsers(data.results || []);
+    } finally {
+      setUsersLoading(false);
+    }
+  }
+
+  async function onChangeUser(nextId) {
+    setUserId(nextId);
+
+    // reset svega vezanog za profil
+    setUser(null);
+    setRecipes([]);
+    setSkip(0);
+    setLikedRecipes([]);
+    setLikesSkip(0);
+    setLikesTotal(0);
+
+    // ucitaj sve ispočetka za novog usera
+    try {
+      const u = await api.getUser(nextId);
+      setUser(u);
+
+      const r = await api.listUserRecipes(nextId, 0, 20);
+      setRecipes(r.results || []);
+      setSkip(20);
+
+      const page = await api.likesIdsPage(nextId, 0, 20);
+      setLikesTotal(page.total ?? 0);
+      const ids = page.recipe_ids || [];
+      const details = ids.length ? await api.byIds(ids) : { results: [] };
+      setLikedRecipes(details.results || []);
+      setLikesSkip(20);
+    } catch (e) {
+      setErr(e.message || String(e));
+    }
+  }
 
   async function loadProfile(reset = false) {
     setLoading(true);
     setErr("");
     try {
-      const u = await api.getUser(HARD_USER_ID);
+      const u = await api.getUser(userId);
       setUser(u);
 
       const pageSkip = reset ? 0 : skip;
-      const data = await api.listUserRecipes(HARD_USER_ID, pageSkip, 20);
+      const data = await api.listUserRecipes(userId, pageSkip, 20);
 
       setRecipes((prev) => (reset ? data.results : [...prev, ...data.results]));
       setSkip(pageSkip + 20);
@@ -174,7 +218,7 @@ export default function ProfilePage() {
           .filter((x) => x.name),
       };
 
-      await api.createRecipeForUser(HARD_USER_ID, payload);
+      await api.createRecipeForUser(userId, payload);
 
       // reset forme
       setTitle("");
@@ -200,7 +244,7 @@ export default function ProfilePage() {
       const pageSkip = reset ? 0 : likesSkip;
 
       // 1) uzmi ids page
-      const page = await api.likesIdsPage(HARD_USER_ID, pageSkip, 20);
+      const page = await api.likesIdsPage(userId, pageSkip, 20);
       // očekujemo: { total, skip, limit, recipe_ids }
       const ids = page.recipe_ids || [];
       setLikesTotal(page.total ?? 0);
@@ -256,7 +300,7 @@ async function saveEdit() {
         .filter((x) => x.name),
     };
 
-    await api.updateRecipeForUser(HARD_USER_ID, editing.id, payload);
+    await api.updateRecipeForUser(userId, editing.id, payload);
 
     closeEdit();
     setRecipes([]);
@@ -275,7 +319,7 @@ async function deleteRecipe(recipeId) {
   setErr("");
 
   try {
-    await api.deleteRecipeForUser(HARD_USER_ID, recipeId);
+    await api.deleteRecipeForUser(userId, recipeId);
     setRecipes([]);
     setSkip(0);
     await loadProfile(true);
@@ -288,6 +332,7 @@ async function deleteRecipe(recipeId) {
 
 
 useEffect(() => {
+  loadUsers();
   loadCategories();
   loadProfile(true);
   loadLikes(true);
@@ -327,11 +372,26 @@ useEffect(() => {
                 <div className={styles.userName}>
                   {user ? user.username : "Učitavanje…"}
                 </div>
-                <div className={styles.userId}>{HARD_USER_ID}</div>
+                <div className={styles.userId}>{userId}</div>
               </div>
             </div>
+            {/*  lista korisnika */}
+            <div className={styles.field}>
+              <div className={styles.label}>Izaberi korisnika</div>
+              <Select
+                value={userId}
+                onChange={(e) => onChangeUser(e.target.value)}
+                disabled={usersLoading || !allUsers.length}
+              >
+                {allUsers.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.username}
+                  </option>
+                ))}
+              </Select>
+            </div>
+            
           </Card>
-
           <Card className={styles.formCard}>
             <div className={styles.cardHeader}>
               <div>
