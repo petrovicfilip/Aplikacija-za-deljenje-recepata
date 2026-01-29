@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import ProfilePage from "./ProfilePage";
-import RecipePage from "./RecipePage";
+import ProfilePage from "./components/ProfilePage";
+import RecipePage from "./components/RecipePage";
 
 export default function App() {
   return (

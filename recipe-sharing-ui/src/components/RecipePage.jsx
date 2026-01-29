@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { api } from "./api";
-import styles from "./styles/RecipePage.module.css";
-import formStyles from "./styles/ProfilePage.module.css";
-import { useCurrentUser } from "./CurrentUserContext";
+import { api } from "../api/api";
+import styles from "../styles/RecipePage.module.css";
+import formStyles from "../styles/ProfilePage.module.css";
+import { useCurrentUser } from "../current_user/CurrentUserContext";
 
 
 const HARD_USER_ID = "fc184998-e09e-451b-925b-2f496f279b50";

@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { api } from "./api";
-import styles from "./styles/ProfilePage.module.css";
+import { api } from "../api/api";
+import styles from "../styles/ProfilePage.module.css";
 import { useNavigate } from "react-router-dom";
-
-import { useCurrentUser } from "./CurrentUserContext";
+import { useCurrentUser } from "../current_user/CurrentUserContext";
 const HARD_USER_ID = "fc184998-e09e-451b-925b-2f496f279b50";
 
 function Card({ children, className = "", ...props}) {
