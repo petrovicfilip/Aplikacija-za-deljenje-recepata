@@ -415,7 +415,7 @@ def update_recipe(recipe_id: str, payload: RecipeUpdate, driver=Depends(get_driv
         raise HTTPException(status_code=400, detail="recipe_id is required")
 
     # title: None => nije poslato
-    # description: None => nije poslato; "" => obriši; "tekst" => setuj
+    # description: None => nije poslato; "" => obriši;
     title = payload.title
     description = payload.description
     description_norm = sr_norm_latin(description) if description else None
@@ -461,7 +461,7 @@ def update_recipe(recipe_id: str, payload: RecipeUpdate, driver=Depends(get_driv
             ok = session.run(cypher_cat, rid=rid, category=category).single()
         if not ok:
             # moze biti Recipe not found ili Category ne postoji
-            # prvo proverimo da li recipe postoji
+            # prvo proverim da li recipe postoji
             check = """
             MATCH (r:Recipe {id: $rid})
             RETURN r.id AS id;

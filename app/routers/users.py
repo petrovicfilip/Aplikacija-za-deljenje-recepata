@@ -11,7 +11,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 @router.post("", status_code=201, response_model=UserCreateResponse)
 def create_user(payload: UserCreate, driver=Depends(get_driver)):
     uid = str(uuid.uuid4())
-    username = payload.username  # vec strip+lower iz DTO
+    username = payload.username
 
     cypher = """
     MERGE (u:User {username: $username})
@@ -104,7 +104,6 @@ def list_user_recipes(
     with driver.session() as session:
         rec = session.run(cypher, uid=uid, skip=skip, limit=limit).single()
 
-    # prepraviti ovo jer se moze desi da nema vise lajkova !!!
     if not rec:
         raise HTTPException(status_code=404, detail="User not found")
 
