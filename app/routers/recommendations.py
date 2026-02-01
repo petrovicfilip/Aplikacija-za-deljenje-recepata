@@ -16,44 +16,42 @@ def recommend_for_user(
         raise HTTPException(status_code=400, detail="user_id is required")
 
     cypher = """
-    // Proveri da user postoji
+    // Proveri da user postoji + ucitaj lajkovane
     MATCH (u:User {id: $uid})
-
-    // Učitaj lajkovane recepte
     OPTIONAL MATCH (u)-[:LIKES]->(liked:Recipe)
-    WITH u, collect(DISTINCT liked) AS likedRecipes
+    WITH collect(DISTINCT liked) AS likedRecipes
 
-    // Ako nema likes -> popular fallback
     CALL {
+      // ---------- POPULAR fallback ----------
       WITH likedRecipes
       WITH likedRecipes WHERE size(likedRecipes) = 0
+
       MATCH (r:Recipe)
       OPTIONAL MATCH (x:User)-[:LIKES]->(r)
-      WITH r, count(x) AS likes
-      OPTIONAL MATCH (r)-[rel:HAS_INGREDIENT]->(i:Ingredient)
-      WITH r, likes, collect({
-        name: i.name,
-        amount: rel.amount,
-        unit: rel.unit
-      }) AS ingredients
-      RETURN r.id AS id,
-             r.title AS title,
-             r.description AS description,
-             likes AS score,
-             ingredients,
-             "popular" AS mode
-      ORDER BY score DESC, title ASC
-      SKIP $skip
-      LIMIT $limit
-    }
+      WITH r, count(x) AS score
 
-    // Ako ima likes -> content-based
-    UNION
-    CALL {
+      OPTIONAL MATCH (r)-[:IN_CATEGORY]->(c:Category)
+      OPTIONAL MATCH (r)-[rel:HAS_INGREDIENT]->(i:Ingredient)
+
+      RETURN
+        r.id AS id,
+        r.title AS title,
+        r.description AS description,
+        c.name AS category,
+        score AS score,
+        collect(DISTINCT {
+          name: i.name,
+          amount: rel.amount,
+          unit: rel.unit
+        }) AS ingredients,
+        "popular" AS mode
+
+      UNION
+
+      // ---------- CONTENT-based ----------
       WITH likedRecipes
       WITH likedRecipes WHERE size(likedRecipes) > 0
 
-      // profil sastojaka iz lajkovanih recepata
       UNWIND likedRecipes AS lr
       MATCH (lr)-[:HAS_INGREDIENT]->(pi:Ingredient)
       WITH likedRecipes, collect(DISTINCT toLower(pi.name)) AS profile
@@ -61,27 +59,32 @@ def recommend_for_user(
       MATCH (cand:Recipe)
       WHERE NOT cand IN likedRecipes
 
+      OPTIONAL MATCH (cand)-[:IN_CATEGORY]->(c:Category)
       MATCH (cand)-[rel:HAS_INGREDIENT]->(ci:Ingredient)
-      WITH cand,
-           profile,
+
+      WITH cand, c, profile,
+           count(DISTINCT CASE WHEN toLower(ci.name) IN profile THEN ci END) AS score,
            collect(DISTINCT {
-             name: toLower(ci.name),
+             name: ci.name,
              amount: rel.amount,
              unit: rel.unit
-           }) AS ingredients,
-           count(DISTINCT CASE WHEN toLower(ci.name) IN profile THEN ci END) AS score
+           }) AS ingredients
       WHERE score > 0
 
-      RETURN cand.id AS id,
-             cand.title AS title,
-             cand.description AS description,
-             score,
-             ingredients,
-             "content" AS mode
-      ORDER BY score DESC, title ASC
-      SKIP $skip
-      LIMIT $limit
+      RETURN
+        cand.id AS id,
+        cand.title AS title,
+        cand.description AS description,
+        c.name AS category,
+        score AS score,
+        ingredients,
+        "content" AS mode
     }
+
+    RETURN id, title, description, category, score, ingredients, mode
+    ORDER BY score DESC, title ASC
+    SKIP $skip
+    LIMIT $limit
     """
 
     with driver.session() as session:

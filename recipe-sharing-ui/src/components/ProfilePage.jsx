@@ -356,6 +356,9 @@ useEffect(() => {
           <h1 className={styles.title}>Profil korisnika</h1>
         </div>
         <div className={styles.headerRight}>
+          <Button variant="secondary" onClick={() => navigate("/search")}>
+               Pretraga
+          </Button>
           {loading ? <Pill> "Učitavanje…" </Pill> : ""}
         </div>
       </header>

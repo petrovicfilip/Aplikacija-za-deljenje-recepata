@@ -108,14 +108,25 @@ export const api = {
 
   likeExists: (userId, recipeId) =>
   http(`/likes/exists?user_id=${encodeURIComponent(userId)}&recipe_id=${encodeURIComponent(recipeId)}`),
-  
-  searchByCategory: (category, skip = 0, limit = 20) =>
-    request(
-      `/recipes/search_by_category?category=${encodeURIComponent(category)}&skip=${skip}&limit=${limit}`
-    ),
+  // SEARCH
 
+  // 1) category search
+  searchByCategory: (cat, skip = 0, limit = 20) =>
+    http(`/recipes/search_by_category?category=${encodeURIComponent(cat)}&skip=${skip}&limit=${limit}`),
+
+  // 2) ingredients search
+  searchByIngredients: (ingredients, skip = 0, limit = 20) => {
+    const qs = ingredients
+      .map((x) => `ingredients=${encodeURIComponent(x)}`)
+      .join("&");
+    return http(`/recipes/search_csv?${qs}&skip=${skip}&limit=${limit}`);
+  },
+
+  // 3) description search
   searchByDescription: (q, skip = 0, limit = 20) =>
-    request(
-      `/recipes/search_by_description?q=${encodeURIComponent(q)}&skip=${skip}&limit=${limit}`
-    ),
+    http(`/recipes/search_by_description?q=${encodeURIComponent(q)}&skip=${skip}&limit=${limit}`),
+
+  // preporuke
+  recommendForUser: (userId, skip = 0, limit = 10) =>
+    http(`/recommendations/${encodeURIComponent(userId)}?limit=${limit}&skip=${skip}`),
 };

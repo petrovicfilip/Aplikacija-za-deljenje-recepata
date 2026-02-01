@@ -83,9 +83,9 @@ def search_recipes_csv(
     cypher = """
     WITH $wanted AS wanted
     MATCH (r:Recipe)-[rel:HAS_INGREDIENT]->(i:Ingredient)
-    OPTIONAL MATCH (r)-[:IN_CATEGORY]->(c:Category)
     WHERE toLower(i.name) IN wanted
-    WITH r,
+    OPTIONAL MATCH (r)-[:IN_CATEGORY]->(c:Category)
+    WITH r, c,
          collect(DISTINCT {
            name: toLower(i.name),
            amount: rel.amount,
@@ -94,7 +94,7 @@ def search_recipes_csv(
          count(DISTINCT i) AS score
     RETURN r.id AS id,
            r.title AS title,
-           c.name AS category,
+           coalesce(c.name, "uncategorized") AS category,
            matched,
            score
     ORDER BY score DESC, title ASC
@@ -120,20 +120,19 @@ def search_by_category(
 
     cypher = """
     MATCH (c:Category {name: $cat})
+    
     CALL {
-      WITH c, $skip AS skip, $limit AS limit
-      OPTIONAL MATCH (r:Recipe)-[:IN_CATEGORY]->(c)
+      WITH c
+      MATCH (r:Recipe)-[:IN_CATEGORY]->(c)
       OPTIONAL MATCH (r)-[rel:HAS_INGREDIENT]->(i:Ingredient)
       WITH r, c, collect({
         name: i.name,
         amount: rel.amount,
         unit: rel.unit
       }) AS ingredients
-      WITH r, c, ingredients
-      WHERE r IS NOT NULL
       ORDER BY r.title ASC
-      SKIP skip
-      LIMIT limit
+      SKIP $skip
+      LIMIT $limit
       RETURN collect({
         id: r.id,
         title: r.title,
@@ -142,13 +141,13 @@ def search_by_category(
         ingredients: ingredients
       }) AS results
     }
-
+    
     CALL {
       WITH c
-      OPTIONAL MATCH (r:Recipe)-[:IN_CATEGORY]->(c)
+      MATCH (r:Recipe)-[:IN_CATEGORY]->(c)
       RETURN count(r) AS total
     }
-
+    
     RETURN total, results;
     """
 

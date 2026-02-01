@@ -1,0 +1,352 @@
+.page {
+  padding: 22px 22px 36px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.kicker {
+  font-size: 12px;
+  opacity: 0.7;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 6px 0 6px;
+  font-size: 32px;
+  letter-spacing: -0.02em;
+}
+
+.subtitle {
+  opacity: 0.8;
+  max-width: 60ch;
+}
+
+.headerRight {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 360px 1fr 360px;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.left, .center, .right {
+  min-width: 0;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+  padding: 14px;
+}
+
+.panel {
+  position: sticky;
+  top: 18px;
+}
+
+@media (max-width: 1100px) {
+  .panel {
+    position: static;
+  }
+}
+
+.panelTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.panelTitle {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.panelHint {
+  font-size: 12px;
+  opacity: 0.75;
+  margin-top: 4px;
+}
+
+.segment {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin: 12px 0 10px;
+}
+
+.segmentBtn {
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  background: rgba(255,255,255,0.65);
+  border-radius: 12px;
+  padding: 10px 10px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.segmentActive {
+  border-color: rgba(15, 23, 42, 0.22);
+  background: rgba(255,255,255,0.95);
+}
+
+.field {
+  margin-top: 12px;
+}
+
+.label {
+  font-size: 12px;
+  opacity: 0.8;
+  margin-bottom: 6px;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+}
+
+.hint {
+  margin-top: 8px;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.06);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  font-size: 12px;
+}
+
+.chipX {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  opacity: 0.65;
+}
+
+.actions {
+  margin-top: 14px;
+}
+
+.searchBtn {
+  width: 100%;
+}
+
+.meta {
+  margin-top: 12px;
+  font-size: 12px;
+  opacity: 0.75;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  padding-top: 10px;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 2px 0 12px;
+  gap: 12px;
+}
+
+.sectionTitle {
+  font-weight: 800;
+  font-size: 16px;
+}
+
+.sectionHint {
+  font-size: 12px;
+  opacity: 0.75;
+  margin-top: 3px;
+}
+
+.list {
+  display: grid;
+  gap: 12px;
+}
+
+.recipeCard {
+  cursor: pointer;
+  padding: 14px;
+}
+
+.recipeTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.recipeTitle {
+  font-weight: 800;
+  font-size: 16px;
+}
+
+.recipeDesc {
+  margin-top: 8px;
+  opacity: 0.85;
+  white-space: pre-wrap;
+}
+
+.recipeIngs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.ingChip {
+  display: inline-flex;
+  gap: 6px;
+  align-items: baseline;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.06);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  font-size: 12px;
+}
+
+.ingChipMeta {
+  opacity: 0.7;
+}
+
+.badge {
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  background: rgba(255,255,255,0.7);
+}
+
+.badgeSmall {
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  background: rgba(255,255,255,0.7);
+}
+
+.dim {
+  opacity: 0.7;
+}
+
+.listSmall {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.recoItem {
+  padding: 10px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255,255,255,0.55);
+  cursor: pointer;
+}
+
+.recoTitle {
+  font-weight: 750;
+}
+
+.recoMeta {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.loadMoreWrap {
+  margin-top: 14px;
+  display: flex;
+  justify-content: center;
+}
+
+.alert {
+  background: rgba(239, 68, 68, 0.10);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+
+.alertTitle {
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.alertText {
+  opacity: 0.9;
+}
+
+.btn {
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  border-radius: 12px;
+  padding: 10px 12px;
+  cursor: pointer;
+  background: rgba(255,255,255,0.8);
+  font-weight: 700;
+}
+
+.btn_primary {
+  background: rgba(15, 23, 42, 0.92);
+  border-color: rgba(15, 23, 42, 0.92);
+  color: white;
+}
+
+.btn_secondary {
+  background: rgba(255,255,255,0.85);
+}
+
+.btn_ghost {
+  background: transparent;
+}
+
+.input, .select {
+  width: 100%;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 12px;
+  padding: 10px 10px;
+  background: rgba(255,255,255,0.85);
+  outline: none;
+}
+
+.pill {
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.10);
+  background: rgba(255,255,255,0.7);
+}
