@@ -4,6 +4,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, Query
 from app.db.neo4j_driver import get_driver
 from app.schemas.recipe import RecipeCreate, RecipeUpdate, IngredientInput, RecipeIdsRequest, RecipeLikesCountOut
+from app.utils.text_norm import sr_norm_latin
 
 router = APIRouter(prefix="/recipes", tags=["recipes"])
 
@@ -54,7 +55,7 @@ def search_recipes(
          count(DISTINCT i) AS score
     RETURN r.id AS id,
            r.title AS title,
-           r.category as category,
+           c.name AS category,
            matched,
            score
     ORDER BY score DESC, title ASC
@@ -93,7 +94,7 @@ def search_recipes_csv(
          count(DISTINCT i) AS score
     RETURN r.id AS id,
            r.title AS title,
-           r.category as category,
+           c.name AS category,
            matched,
            score
     ORDER BY score DESC, title ASC
@@ -165,67 +166,54 @@ def search_by_category(
         "results": rec["results"] or [],
     }
 
-
+# imam 2 polja: description i description_norm, gde je description_norm normalizovano f-jom sr_norm_latin i nad njim je kreiran index u bazi
+# radi efikasnije pretrage, iako bi i bruteforce ovde dobro radio
+# description se koristi da cuva originalni opis i da prikaz bude lepsi (prikazuje slova č ć đ... velika slova i slicno)
+# neo4j koristi Lucene biblioteku
 @router.get("/search_by_description")
 def search_by_description(
-    q: str = Query(..., min_length=1, description=""),
+    q: str = Query(..., min_length=1),
     limit: int = Query(20, ge=1, le=100),
     skip: int = Query(0, ge=0),
     driver=Depends(get_driver),
 ):
-    query = q.strip().lower()
+    query = sr_norm_latin(q)
     if not query:
         raise HTTPException(status_code=400, detail="q must not be empty")
 
     cypher = """
-    WITH $q AS q
-    CALL {
-      WITH q, $skip AS skip, $limit AS limit
-      MATCH (r:Recipe)
-      WHERE r.description IS NOT NULL AND toLower(r.description) CONTAINS q
-      OPTIONAL MATCH (r)-[:IN_CATEGORY]->(c:Category)
-      OPTIONAL MATCH (r)-[rel:HAS_INGREDIENT]->(i:Ingredient)
-      WITH r, c, collect({
-        name: i.name,
-        amount: rel.amount,
-        unit: rel.unit
-      }) AS ingredients
-      ORDER BY r.title ASC
-      SKIP skip
-      LIMIT limit
-      RETURN collect({
-        id: r.id,
-        title: r.title,
-        description: r.description,
-        category: c.name,
-        ingredients: ingredients
-      }) AS results
-    }
-
-    CALL {
-      WITH q
-      MATCH (r:Recipe)
-      WHERE r.description IS NOT NULL AND toLower(r.description) CONTAINS q
-      RETURN count(r) AS total
-    }
-
-    RETURN total, results;
+    CALL db.index.fulltext.queryNodes("recipeDescNormIndex", $q) YIELD node, score
+    WITH node AS r, score
+    OPTIONAL MATCH (r)-[:IN_CATEGORY]->(c:Category)
+    OPTIONAL MATCH (r)-[rel:HAS_INGREDIENT]->(i:Ingredient)
+    WITH r, c, score, collect({
+      name: i.name,
+      amount: rel.amount,
+      unit: rel.unit
+    }) AS ingredients
+    RETURN r.id AS id,
+           r.title AS title,
+           r.description AS description,
+           c.name AS category,
+           score,
+           ingredients
+    ORDER BY score DESC, title ASC
+    SKIP $skip
+    LIMIT $limit;
     """
 
     with driver.session() as session:
-        rec = session.run(cypher, q=query, skip=skip, limit=limit).single()
+        rows = [rec.data() for rec in session.run(cypher, q=query, skip=skip, limit=limit)]
 
-    if not rec:
-        return {"q": query, "skip": skip, "limit": limit, "total": 0, "results": []}
+    # total (za UI paginaciju)
+    cypher_total = """
+    CALL db.index.fulltext.queryNodes("recipeDescNormIndex", $q) YIELD node
+    RETURN count(node) AS total;
+    """
+    with driver.session() as session:
+        total = session.run(cypher_total, q=query).single()["total"]
 
-    return {
-        "q": query,
-        "skip": skip,
-        "limit": limit,
-        "total": rec["total"],
-        "results": rec["results"] or [],
-    }
-
+    return {"q": query, "skip": skip, "limit": limit, "total": total, "results": rows}
 
 
 # -----------------------------
@@ -326,12 +314,13 @@ def create_recipe(payload: RecipeCreate, driver=Depends(get_driver)):
     rid = str(uuid.uuid4())
     title = payload.title
     description = payload.description
+    description_norm = sr_norm_latin(description) if description else None
     ings = norm_ingredients(payload.ingredients)
     category = payload.category
 
     cypher = """
     MATCH (c:Category {name: $category})
-    CREATE (r:Recipe {id: $rid, title: $title, description: $description})
+    CREATE (r:Recipe {id: $rid, title: $title, description: $description, description_norm: $description_norm})
     MERGE (r)-[:IN_CATEGORY]->(c)
     WITH r
     UNWIND $ings AS ing
@@ -350,6 +339,7 @@ def create_recipe(payload: RecipeCreate, driver=Depends(get_driver)):
             rid=rid,
             title=title,
             description=description,
+            description_norm=description_norm,
             ings=ings,
             category=category
         ).single()
@@ -429,6 +419,7 @@ def update_recipe(recipe_id: str, payload: RecipeUpdate, driver=Depends(get_driv
     # description: None => nije poslato; "" => obriši; "tekst" => setuj
     title = payload.title
     description = payload.description
+    description_norm = sr_norm_latin(description) if description else None
     ings = norm_ingredients(payload.ingredients) if payload.ingredients is not None else None
     category = payload.category
 
@@ -450,10 +441,11 @@ def update_recipe(recipe_id: str, payload: RecipeUpdate, driver=Depends(get_driv
         cypher_desc = """
         MATCH (r:Recipe {id: $rid})
         SET r.description = $description
+        SET r.description_norm = $description_norm
         RETURN r.id AS id;
         """
         with driver.session() as session:
-            ok = session.run(cypher_desc, rid=rid, description=description).single()
+            ok = session.run(cypher_desc, rid=rid, description=description, description_norm=description_norm).single()
         if not ok:
             raise HTTPException(status_code=404, detail="Recipe not found")
 

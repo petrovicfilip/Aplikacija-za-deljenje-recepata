@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends
 from app.db.neo4j_driver import get_driver
 
 router = APIRouter(prefix="/categories", tags=["categories"])
-
+# kategorije su fiksne i ne menjaju ih korisnici
+# dodato je 20-ak kategorija koje pokrivaju sve slucajeve
 @router.get("")
 def list_categories(driver=Depends(get_driver)):
     cypher = """
