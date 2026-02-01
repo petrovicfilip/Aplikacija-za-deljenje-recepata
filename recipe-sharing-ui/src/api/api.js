@@ -108,4 +108,14 @@ export const api = {
 
   likeExists: (userId, recipeId) =>
   http(`/likes/exists?user_id=${encodeURIComponent(userId)}&recipe_id=${encodeURIComponent(recipeId)}`),
+  
+  searchByCategory: (category, skip = 0, limit = 20) =>
+    request(
+      `/recipes/search_by_category?category=${encodeURIComponent(category)}&skip=${skip}&limit=${limit}`
+    ),
+
+  searchByDescription: (q, skip = 0, limit = 20) =>
+    request(
+      `/recipes/search_by_description?q=${encodeURIComponent(q)}&skip=${skip}&limit=${limit}`
+    ),
 };

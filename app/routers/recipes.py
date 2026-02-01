@@ -106,6 +106,127 @@ def search_recipes_csv(
 
     return {"wanted": wanted, "skip": skip, "limit": limit, "results": rows}
 
+@router.get("/search_by_category")
+def search_by_category(
+    category: str = Query(..., min_length=1, description=""),
+    limit: int = Query(20, ge=1, le=100),
+    skip: int = Query(0, ge=0),
+    driver=Depends(get_driver),
+):
+    cat = category.strip().lower()
+    if not cat:
+        raise HTTPException(status_code=400, detail="category must not be empty")
+
+    cypher = """
+    MATCH (c:Category {name: $cat})
+    CALL {
+      WITH c, $skip AS skip, $limit AS limit
+      OPTIONAL MATCH (r:Recipe)-[:IN_CATEGORY]->(c)
+      OPTIONAL MATCH (r)-[rel:HAS_INGREDIENT]->(i:Ingredient)
+      WITH r, c, collect({
+        name: i.name,
+        amount: rel.amount,
+        unit: rel.unit
+      }) AS ingredients
+      WITH r, c, ingredients
+      WHERE r IS NOT NULL
+      ORDER BY r.title ASC
+      SKIP skip
+      LIMIT limit
+      RETURN collect({
+        id: r.id,
+        title: r.title,
+        description: r.description,
+        category: c.name,
+        ingredients: ingredients
+      }) AS results
+    }
+
+    CALL {
+      WITH c
+      OPTIONAL MATCH (r:Recipe)-[:IN_CATEGORY]->(c)
+      RETURN count(r) AS total
+    }
+
+    RETURN total, results;
+    """
+
+    with driver.session() as session:
+        rec = session.run(cypher, cat=cat, skip=skip, limit=limit).single()
+
+    if not rec:
+        raise HTTPException(status_code=400, detail="Invalid category")
+
+    return {
+        "category": cat,
+        "skip": skip,
+        "limit": limit,
+        "total": rec["total"],
+        "results": rec["results"] or [],
+    }
+
+
+@router.get("/search_by_description")
+def search_by_description(
+    q: str = Query(..., min_length=1, description=""),
+    limit: int = Query(20, ge=1, le=100),
+    skip: int = Query(0, ge=0),
+    driver=Depends(get_driver),
+):
+    query = q.strip().lower()
+    if not query:
+        raise HTTPException(status_code=400, detail="q must not be empty")
+
+    cypher = """
+    WITH $q AS q
+    CALL {
+      WITH q, $skip AS skip, $limit AS limit
+      MATCH (r:Recipe)
+      WHERE r.description IS NOT NULL AND toLower(r.description) CONTAINS q
+      OPTIONAL MATCH (r)-[:IN_CATEGORY]->(c:Category)
+      OPTIONAL MATCH (r)-[rel:HAS_INGREDIENT]->(i:Ingredient)
+      WITH r, c, collect({
+        name: i.name,
+        amount: rel.amount,
+        unit: rel.unit
+      }) AS ingredients
+      ORDER BY r.title ASC
+      SKIP skip
+      LIMIT limit
+      RETURN collect({
+        id: r.id,
+        title: r.title,
+        description: r.description,
+        category: c.name,
+        ingredients: ingredients
+      }) AS results
+    }
+
+    CALL {
+      WITH q
+      MATCH (r:Recipe)
+      WHERE r.description IS NOT NULL AND toLower(r.description) CONTAINS q
+      RETURN count(r) AS total
+    }
+
+    RETURN total, results;
+    """
+
+    with driver.session() as session:
+        rec = session.run(cypher, q=query, skip=skip, limit=limit).single()
+
+    if not rec:
+        return {"q": query, "skip": skip, "limit": limit, "total": 0, "results": []}
+
+    return {
+        "q": query,
+        "skip": skip,
+        "limit": limit,
+        "total": rec["total"],
+        "results": rec["results"] or [],
+    }
+
+
 
 # -----------------------------
 # POPULAR
