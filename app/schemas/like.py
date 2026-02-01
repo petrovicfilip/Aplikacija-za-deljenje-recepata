@@ -31,3 +31,8 @@ class UserLikesIdsPageResponse(BaseModel):
     limit: int
     total: int
     recipe_ids: List[str]
+
+class LikeExistsResponse(BaseModel):
+    user_id: str
+    recipe_id: str
+    exists: bool

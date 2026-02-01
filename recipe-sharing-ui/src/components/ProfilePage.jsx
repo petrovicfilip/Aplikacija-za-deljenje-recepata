@@ -95,6 +95,7 @@ export default function ProfilePage() {
   const [user, setUser] = useState(null);
   const [recipes, setRecipes] = useState([]);
   const [skip, setSkip] = useState(0);
+  const [recipesTotal, setRecipesTotal] = useState(0);
   const [categories, setCategories] = useState([]);
 
   const [title, setTitle] = useState("");
@@ -129,6 +130,9 @@ export default function ProfilePage() {
 
   const canCreate = useMemo(() => title.trim().length > 0, [title]);
 
+  const recipesAllLoaded = recipes.length >= recipesTotal;
+
+
   async function loadUsers() {
     setUsersLoading(true);
     try {
@@ -149,6 +153,8 @@ export default function ProfilePage() {
     setLikedRecipes([]);
     setLikesSkip(0);
     setLikesTotal(0);
+    setRecipesTotal(0);
+
 
     // ucitaj sve ispočetka za novog usera
     try {
@@ -157,7 +163,9 @@ export default function ProfilePage() {
 
       const r = await api.listUserRecipes(nextId, 0, 20);
       setRecipes(r.results || []);
+      setRecipesTotal(r.total ?? 0);
       setSkip(20);
+
 
       const page = await api.likesIdsPage(nextId, 0, 20);
       setLikesTotal(page.total ?? 0);
@@ -179,7 +187,8 @@ export default function ProfilePage() {
 
       const pageSkip = reset ? 0 : skip;
       const data = await api.listUserRecipes(userId, pageSkip, 20);
-
+      console.log("listUserRecipes:", data);
+      setRecipesTotal(data.total ?? 0);
       setRecipes((prev) => (reset ? data.results : [...prev, ...data.results]));
       setSkip(pageSkip + 20);
     } catch (e) {
@@ -354,7 +363,7 @@ useEffect(() => {
       {err ? (
         <div className={styles.alert}>
           <div className={styles.alertTitle}>Greška</div>
-          <div className={styles.alertText}>{err}</div>
+          {/* <div className={styles.alertText}>{err}</div> */}
         </div>
       ) : null}
 
@@ -483,7 +492,7 @@ useEffect(() => {
         <div>
           <div className={styles.sectionTitle}>Moji recepti</div>
           <div className={styles.sectionHint}>
-            Ukupno: <strong>{recipes.length}</strong>
+            Ukupno: <strong>{recipesTotal}</strong> • Prikazano: <strong>{recipes.length}</strong>
           </div>
         </div>
         <Button variant="ghost" onClick={() => loadProfile(true)} disabled={loading}>
@@ -553,8 +562,12 @@ useEffect(() => {
       </div>
 
       <div className={styles.loadMoreWrap}>
-        <Button onClick={() => loadProfile(false)} disabled={loading} variant="secondary">
-          {loading ? "Učitavam…" : "Učitaj još"}
+        <Button
+          onClick={() => loadProfile(false)}
+          disabled={loading || recipesAllLoaded}
+          variant="secondary"
+        >
+          {loading ? "Učitavam…" : recipesAllLoaded ? "Nema više" : "Učitaj još"}
         </Button>
       </div>
     </div>

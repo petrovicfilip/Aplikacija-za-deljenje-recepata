@@ -63,27 +63,42 @@ def list_user_recipes(
 
     cypher = """
     MATCH (u:User {id: $uid})
-    OPTIONAL MATCH (u)-[:CREATED]->(r:Recipe)
-    OPTIONAL MATCH (r)-[:IN_CATEGORY]->(c:Category)
-    OPTIONAL MATCH (r)-[rel:HAS_INGREDIENT]->(i:Ingredient)
-    WITH u, r, c, collect({
-      name: i.name,
-      amount: rel.amount,
-      unit: rel.unit
-    }) AS ingredients
-    WITH u, r, c, ingredients
-    ORDER BY r.title ASC
-    SKIP $skip
-    LIMIT $limit
+
+    // broj recepata usera
+    CALL {
+      WITH u
+      OPTIONAL MATCH (u)-[:CREATED]->(r:Recipe)
+      RETURN count(r) AS total
+    }
+
+    // page recepti
+    CALL {
+      WITH u
+      OPTIONAL MATCH (u)-[:CREATED]->(r:Recipe)
+      OPTIONAL MATCH (r)-[:IN_CATEGORY]->(c:Category)
+      OPTIONAL MATCH (r)-[rel:HAS_INGREDIENT]->(i:Ingredient)
+      WITH r, c, collect({
+        name: i.name,
+        amount: rel.amount,
+        unit: rel.unit
+      }) AS ingredients
+      WITH r, c, ingredients
+      ORDER BY r.title ASC
+      SKIP $skip
+      LIMIT $limit
+      RETURN collect({
+        id: r.id,
+        title: r.title,
+        description: r.description,
+        category: c.name,
+        ingredients: ingredients
+      }) AS results
+    }
+
     RETURN u.id AS user_id,
            u.username AS username,
-           collect({
-             id: r.id,
-             title: r.title,
-             description: r.description,
-             category: c.name,
-             ingredients: ingredients
-           }) AS results;
+           total,
+           results;
     """
 
     with driver.session() as session:
@@ -99,6 +114,7 @@ def list_user_recipes(
         "username": data["username"],
         "skip": skip,
         "limit": limit,
+        "total": data["total"],
         "results": [x for x in (data["results"] or []) if x["id"] is not None],
     }
 
@@ -118,6 +134,9 @@ def create_recipe_for_user(
     description = payload.description
     category = payload.category
     ings = norm_ingredients(payload.ingredients)
+
+    if len(ings) == 0:
+        raise HTTPException(status_code=400, detail="At least 1 ingridient is required!")
 
     cypher = """
     MATCH (u:User {id: $uid})

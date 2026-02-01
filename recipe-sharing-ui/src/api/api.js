@@ -106,5 +106,6 @@ export const api = {
   likesIdsPage: (userId, skip=0, limit=20) =>
     http(`/likes/users/${encodeURIComponent(userId)}/ids?limit=${limit}&skip=${skip}`),
 
-
+  likeExists: (userId, recipeId) =>
+  http(`/likes/exists?user_id=${encodeURIComponent(userId)}&recipe_id=${encodeURIComponent(recipeId)}`),
 };

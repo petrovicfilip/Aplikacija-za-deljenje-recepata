@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from app.db.neo4j_driver import get_driver
-from app.schemas.like import LikeCreate, UserLikesIdsResponse
+from app.schemas.like import LikeCreate, UserLikesIdsResponse, LikeExistsResponse
 from app.schemas.like import LikeOut
 from fastapi import Query
 from app.schemas.like import UserLikesCountResponse, UserLikesIdsPageResponse
@@ -130,3 +130,29 @@ def list_user_like_ids(
         "total": rec["total"],
         "recipe_ids": rec["recipe_ids"] or [],
     }
+
+@router.get("/exists", response_model=LikeExistsResponse)
+def like_exists(
+    user_id: str = Query(..., min_length=1),
+    recipe_id: str = Query(..., min_length=1),
+    driver=Depends(get_driver),
+):
+    uid = user_id.strip()
+    rid = recipe_id.strip()
+
+    if not uid or not rid:
+        raise HTTPException(status_code=400, detail="user_id and recipe_id are required")
+
+    cypher = """
+    MATCH (u:User {id: $uid})
+    MATCH (r:Recipe {id: $rid})
+    RETURN exists( (u)-[:LIKES]->(r) ) AS ok;
+    """
+
+    with driver.session() as session:
+        rec = session.run(cypher, uid=uid, rid=rid).single()
+
+    if not rec:
+        raise HTTPException(status_code=404, detail="User or Recipe not found")
+
+    return {"user_id": uid, "recipe_id": rid, "exists": bool(rec["ok"])}

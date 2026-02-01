@@ -230,11 +230,9 @@ export default function RecipePage() {
         // likes count
         const lc = await api.getRecipeLikesCount(id); // { recipe_id, likes }
         setLikesCount(lc.likes);
-
-        // da li je user lajkovao 
-        const page = await api.likesIdsPage(userId, 0, 100); 
-        const ids = page.recipe_ids || [];
-        setLiked(ids.includes(id));
+        const ex = await api.likeExists(userId, id);
+        // duplo da ga negiram da sigurno bude bool, msm nema potrebe al kao
+        setLiked(!!ex.exists);
       } catch (e) {
         setErr(e.message || String(e));
       } finally {
