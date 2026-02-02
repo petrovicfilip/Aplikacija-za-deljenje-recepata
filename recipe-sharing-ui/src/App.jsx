@@ -3,8 +3,6 @@ import ProfilePage from "./components/ProfilePage";
 import RecipePage from "./components/RecipePage";
 import SearchPage from "./components/SearchPage";
 
-
-
 export default function App() {
   return (
     <BrowserRouter>

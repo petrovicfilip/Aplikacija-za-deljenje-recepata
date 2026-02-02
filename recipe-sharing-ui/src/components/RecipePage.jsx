@@ -398,7 +398,6 @@ export default function RecipePage() {
         {data.created_by ? (
           <div className={styles.meta}>
             Postavio: <strong>{data.created_by.username}</strong>{" "}
-            <span className={styles.muted}>({data.created_by.id})</span>
           </div>
         ) : (
           <div className={styles.meta}>Postavio: <span className={styles.muted}>nepoznato</span></div>

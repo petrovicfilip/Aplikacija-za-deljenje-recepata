@@ -383,7 +383,7 @@ useEffect(() => {
                 <div className={styles.userName}>
                   {user ? user.username : "Učitavanje…"}
                 </div>
-                <div className={styles.userId}>{userId}</div>
+                {/* <div className={styles.userId}>{userId}</div> */}
               </div>
             </div>
             {/*  lista korisnika */}

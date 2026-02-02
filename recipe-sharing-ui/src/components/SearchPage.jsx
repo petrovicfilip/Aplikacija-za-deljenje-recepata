@@ -270,7 +270,7 @@ async function loadRecommendations(reset = false) {
         </div>
 
         <div className={styles.headerRight}>
-          <Pill>{loading ? "Pretraga…" : "Spremno"}</Pill>
+          {loading ? <Pill> Pretraga… </Pill> : ""}
           <Button variant="secondary" onClick={() => navigate("/profile")}>
             ← Profil
           </Button>

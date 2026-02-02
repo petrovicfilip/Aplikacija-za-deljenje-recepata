@@ -60,7 +60,6 @@ class RecipeCreate(BaseModel):
             raise ValueError("ingredients contain duplicates")
         return self
 
-
 class RecipeUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=120)
     description: Optional[str] = Field(None, max_length=2000)
@@ -97,8 +96,6 @@ class RecipeUpdate(BaseModel):
             raise ValueError("ingredients contain duplicates")
         return self
 
-    from pydantic import field_validator
-
     @field_validator("category")
     @classmethod
     def norm_category(cls, v: str) -> str:
@@ -106,7 +103,6 @@ class RecipeUpdate(BaseModel):
         if not v:
             raise ValueError("category must not be empty")
         return v
-
 
 class RecipeIdsRequest(BaseModel):
     ids: List[str] = Field(..., min_length=1)
