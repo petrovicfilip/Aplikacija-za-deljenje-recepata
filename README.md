@@ -14,6 +14,9 @@ Proveriti da je sve u redu:
 
 # Pokretanje UI dela
 Preci u folder /recipe-sharing-ui.
+
+Napraviti .env fajl kao i za api (mozete ga samo preimenovati .example.env u . env). U ovaj fajl nalepiti sadrzaj iz .env fajla. To je url za VITE - VITE_API_URL=http://127.0.0.1:8000  
+
 Izvrsiti komande:
 
   Instalirati node.js i dodati u PATH
