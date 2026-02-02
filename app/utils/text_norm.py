@@ -1,7 +1,7 @@
 import unicodedata
 import re
 
-# da normalizujem description jer cu koristiti indeks (Lucene u Neo4j ali nema za srpski) za pretragu po opisu recepta
+# da normalizujem description jer cu koristiti indeks (Lucene u Neo4j ali nema za srpski pa koristim basic) za pretragu po opisu recepta
 def sr_norm_latin(s: str) -> str:
     s = (s or "").strip().lower()
     #  čćšđž -> ccsdz

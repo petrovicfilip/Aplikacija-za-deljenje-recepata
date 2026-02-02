@@ -226,7 +226,6 @@ def update_recipe_for_user(
             ok = session.run(cypher_cat, uid=uid, rid=rid, category=category).single()
         if not ok:
             # moze biti: recipe nije od usera ili category ne postoji
-            # Proveri ownership prvo:
             check = """
             MATCH (u:User {id: $uid})-[:CREATED]->(r:Recipe {id: $rid})
             RETURN r.id AS id;
