@@ -319,7 +319,7 @@ def create_recipe(payload: RecipeCreate, driver=Depends(get_driver)):
 
     cypher = """
     MATCH (c:Category {name: $category})
-    CREATE (r:Recipe {id: $rid, title: $title, description: $description, description_norm: $description_norm})
+    CREATE (r:Recipe {id: $rid, title: $title, description: $description, description_norm: $description_norm, rating_sum: 0, rating_count: 0, rating_avg: 0.0})
     MERGE (r)-[:IN_CATEGORY]->(c)
     WITH r
     UNWIND $ings AS ing
@@ -329,7 +329,10 @@ def create_recipe(payload: RecipeCreate, driver=Depends(get_driver)):
         rel.unit = ing.unit
     RETURN r.id AS id,
            r.title AS title,
-           r.description AS description;
+           r.description AS description,
+           r.rating_sum AS rating_sum, 
+           r.rating_count AS rating_count,
+           rating_avg AS rating_avg;
     """
 
     with driver.session() as session:
@@ -392,11 +395,18 @@ def get_recipe(recipe_id: str, driver=Depends(get_driver)):
     OPTIONAL MATCH (r)-[:IN_CATEGORY]->(c:Category)
     OPTIONAL MATCH (r)-[rel:HAS_INGREDIENT]->(i:Ingredient)
     RETURN r.id AS id,
-           r.title AS title,
-           r.description AS description,
-           c.name AS category,
-           { id: u.id, username: u.username } AS created_by,
-           collect({ name: i.name, amount: rel.amount, unit: rel.unit }) AS ingredients;
+       r.title AS title,
+       r.description AS description,
+       c.name AS category,
+       { id: u.id, username: u.username } AS created_by,
+       collect({ name: i.name, amount: rel.amount, unit: rel.unit }) AS ingredients,
+       coalesce(r.rating_sum,0) AS rating_sum,
+       coalesce(r.rating_count,0) AS rating_count,
+       CASE
+         WHEN coalesce(r.rating_sum,0) = 0 THEN 0.0
+         ELSE (1.0 * coalesce(r.rating_sum,0)) / coalesce(r.rating_count,0)
+       END AS rating_avg;
+
     """
 
     with driver.session() as session:

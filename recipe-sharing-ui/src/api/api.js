@@ -12,12 +12,10 @@ async function http(path, options = {}) {
       const data = await res.json();
       msg = data.detail || JSON.stringify(data);
     } catch {
-      // ignore
     }
     throw new Error(msg);
   }
 
-  // 204
   if (res.status === 204) return null;
   return res.json();
 }
@@ -45,11 +43,11 @@ export const api = {
 
   byIds: (ids) =>
     http(`/recipes/by_ids`, { method: "POST", body: JSON.stringify({ ids }) }),
-
+ 
+  // likes
   likesCountForRecipe: (recipeId) =>
     http(`/recipes/${encodeURIComponent(recipeId)}/likes_count`),
 
-  // likes
   like: (user_id, recipe_id) =>
     http(`/likes`, { method: "POST", body: JSON.stringify({ user_id, recipe_id }) }),
 
@@ -109,12 +107,11 @@ export const api = {
   likeExists: (userId, recipeId) =>
   http(`/likes/exists?user_id=${encodeURIComponent(userId)}&recipe_id=${encodeURIComponent(recipeId)}`),
   // SEARCH
-
-  // 1) category search
+  // category search
   searchByCategory: (cat, skip = 0, limit = 20) =>
     http(`/recipes/search_by_category?category=${encodeURIComponent(cat)}&skip=${skip}&limit=${limit}`),
 
-  // 2) ingredients search
+  // ingredients search
   searchByIngredients: (ingredients, skip = 0, limit = 20) => {
     const qs = ingredients
       .map((x) => `ingredients=${encodeURIComponent(x)}`)
@@ -122,7 +119,7 @@ export const api = {
     return http(`/recipes/search_csv?${qs}&skip=${skip}&limit=${limit}`);
   },
 
-  // 3) description search
+  // description search
   searchByDescription: (q, skip = 0, limit = 20) =>
     http(`/recipes/search_by_description?q=${encodeURIComponent(q)}&skip=${skip}&limit=${limit}`),
 
@@ -130,6 +127,25 @@ export const api = {
   recommendForUser: (userId, skip = 0, limit = 10) =>
     http(`/recommendations/${encodeURIComponent(userId)}?limit=${limit}&skip=${skip}`),
  
+  // nema u UI, samo Swagger
   deleteUser: (userId) =>
     http(`/users/${encodeURIComponent(userId)}`, { method: "DELETE" }),
+
+  // ratings
+  getRating: (recipeId, userId) => {
+  const qs = userId ? `?user_id=${encodeURIComponent(userId)}` : "";
+  return http(`/ratings/${encodeURIComponent(recipeId)}/rating${qs}`);
+  },
+
+  rateRecipe: (userId, recipeId, value) =>
+    http(
+      `/ratings/${encodeURIComponent(recipeId)}/rating?user_id=${encodeURIComponent(userId)}`,
+      { method: "PUT", body: JSON.stringify({ value }) }
+    ),
+
+  deleteRating: (userId, recipeId) =>
+    http(
+      `/ratings/${encodeURIComponent(recipeId)}/rating?user_id=${encodeURIComponent(userId)}`,
+      { method: "DELETE" }
+    ),
 };

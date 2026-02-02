@@ -97,6 +97,14 @@ export default function RecipePage() {
   const [likeBusy, setLikeBusy] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [categories, setCategories] = useState([]);
+  const [rating, setRating] = useState({
+    rating_sum: 0,
+    rating_count: 0,
+    rating_avg: 0,
+    my_rating: null,
+  });
+  const [ratingBusy, setRatingBusy] = useState(false);
+
 
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState("");
@@ -106,6 +114,42 @@ export default function RecipePage() {
   const [savingEdit, setSavingEdit] = useState(false);
   const { userId } = useCurrentUser();
 
+
+  async function loadRating(recipeId) {
+    try {
+      const r = await api.getRating(recipeId, userId);
+      setRating(r);
+    } catch (e) {
+      setErr(e.message || String(e));
+    }
+  }
+  async function setMyRating(value) {
+    if (!data || !userId) return;
+    setRatingBusy(true);
+    setErr("");
+    try {
+      const r = await api.rateRecipe(userId, data.id, value);
+      setRating(r);
+    } catch (e) {
+      setErr(e.message || String(e));
+    } finally {
+      setRatingBusy(false);
+    }
+  }
+
+  async function removeMyRating() {
+    if (!data || !userId) return;
+    setRatingBusy(true);
+    setErr("");
+    try {
+      const r = await api.deleteRating(userId, data.id);
+      setRating(r);
+    } catch (e) {
+      setErr(e.message || String(e));
+    } finally {
+      setRatingBusy(false);
+    }
+  }
 
 
   async function toggleLike() {
@@ -153,7 +197,6 @@ export default function RecipePage() {
     const data = await api.listCategories();
     setCategories(data.results || []);
   } catch {
-    // nije kritično
   }
 }
 
@@ -186,7 +229,7 @@ export default function RecipePage() {
     try {
       const payload = {
         title: editTitle.trim() ? editTitle.trim() : null,
-        // "" = obriši, null = ne šalji -> mi šaljemo "" kad je prazno
+        // "" = obrisi, null = ne salji -> saljem "" kad je prazno
         description: editDescription.trim() ? editDescription : "",
         category: editCategory,
         ingredients: editIngredients
@@ -231,6 +274,7 @@ export default function RecipePage() {
         const lc = await api.getRecipeLikesCount(id); // { recipe_id, likes }
         setLikesCount(lc.likes);
         const ex = await api.likeExists(userId, id);
+        await loadRating(id);
         // duplo da ga negiram da sigurno bude bool, msm nema potrebe al kao
         setLiked(!!ex.exists);
       } catch (e) {
@@ -257,6 +301,62 @@ export default function RecipePage() {
 
           <div className={styles.headerRight}>
             <span className={styles.badge}>{data.category ?? "uncategorized"}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              {/* rating */}
+              <div style={{ display: "flex", alignItems: "center", gap: 2 }}>
+                {[1, 2, 3, 4, 5].map((i) => {
+                  const filled = (rating.my_rating ?? 0) >= i;
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      disabled={!userId || ratingBusy}
+                      onClick={() => setMyRating(i)}
+                      title={!userId ? "Izaberi korisnika da bi ocenio" : `Oceni sa ${i}`}
+                      aria-label={`Oceni sa ${i}`}
+                      style={{
+                        background: "transparent",
+                        border: "none",
+                        cursor: !userId || ratingBusy ? "not-allowed" : "pointer",
+                        fontSize: 22,
+                        lineHeight: 1,
+                        padding: 0,
+                      }}
+                    >
+                      {filled ? "★" : "☆"}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* prosek + broj ocena */}
+              <div style={{ fontSize: 14, opacity: 0.85 }}>
+                Prosek: <strong>{Number(rating.rating_avg || 0).toFixed(2)}</strong>{" "}
+                <span style={{ opacity: 0.8 }}>
+                  ({rating.rating_count || 0})
+                </span>
+              </div>
+
+              {/* ukloni moju ocenu */}
+              {userId && rating.my_rating != null ? (
+                <button
+                  type="button"
+                  onClick={removeMyRating}
+                  disabled={ratingBusy}
+                  title="Ukloni moju ocenu"
+                  style={{
+                    background: "transparent",
+                    border: "1px solid rgba(0,0,0,0.2)",
+                    borderRadius: 8,
+                    padding: "4px 8px",
+                    cursor: ratingBusy ? "not-allowed" : "pointer",
+                    fontSize: 12,
+                  }}
+                >
+                  Ukloni
+                </button>
+              ) : null}
+            </div>
 
             <button
               className={`${styles.likeBtn} ${liked ? styles.likeBtnActive : ""}`}

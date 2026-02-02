@@ -109,7 +109,7 @@ export default function SearchPage() {
   const [category, setCategory] = useState("uncategorized");
 
   const [ingText, setIngText] = useState("");
-  const [ings, setIngs] = useState([]); // array string
+  const [ings, setIngs] = useState([]);
 
   const [descQ, setDescQ] = useState("");
 
@@ -123,7 +123,7 @@ export default function SearchPage() {
   const [reco, setReco] = useState([]);
   const [recoSkip, setRecoSkip] = useState(0);
   const [recoTotal, setRecoTotal] = useState(0);
-  const [recoMode, setRecoMode] = useState(""); // "popular" ili "content" ako vraćaš
+  const [recoMode, setRecoMode] = useState(""); 
   const [recoLoading, setRecoLoading] = useState(false);
 
   const [err, setErr] = useState("");
@@ -143,7 +143,7 @@ export default function SearchPage() {
 
   async function loadCategories() {
     try {
-      const data = await api.listCategories(); // očekujem { results: ["pasta", ...] }
+      const data = await api.listCategories();
       const list = data.results || [];
       setCategories(list);
       if (list.includes("uncategorized")) setCategory("uncategorized");
@@ -173,7 +173,6 @@ export default function SearchPage() {
     const fromText = parseIngs(ingText);
     if (fromText.length) {
         effectiveIngs = fromText;
-        // opciono: sinhronizuj state da UI pokaže čipove
         setIngs(fromText);
         setIngText("");
     }
@@ -189,13 +188,10 @@ export default function SearchPage() {
       let data;
       if (mode === "category") {
         data = await api.searchByCategory(category, pageSkip, limit);
-        // { total, results, skip, limit }
       } else if (mode === "ingredients") {
         data = await api.searchByIngredients(effectiveIngs, pageSkip, limit);
-        // { total, results, skip, limit }
       } else {
         data = await api.searchByDescription(descQ, pageSkip, limit);
-        // { total, results, skip, limit }
       }
 
       const got = data.results || [];
@@ -289,7 +285,7 @@ async function loadRecommendations(reset = false) {
       ) : null}
 
       <div className={styles.grid}>
-        {/* LEFT: search controls */}
+        {/* search controls */}
         <div className={styles.left}>
           <Card className={styles.panel}>
             <div className={styles.panelTitle}>Pretraga</div>
@@ -414,7 +410,7 @@ async function loadRecommendations(reset = false) {
           </Card>
         </div>
 
-        {/* CENTER: results */}
+        {/* results */}
         <div className={styles.center}>
           <div className={styles.sectionHeader}>
             <div>
@@ -446,7 +442,7 @@ async function loadRecommendations(reset = false) {
           </div>
         </div>
 
-        {/* RIGHT: recommendations */}
+        {/* recommendations */}
         <div className={styles.right}>
           <Card className={styles.panel}>
             <div className={styles.panelTop}>
