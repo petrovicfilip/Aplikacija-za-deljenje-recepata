@@ -2,7 +2,10 @@
 Aplikacija za deljenje recepata za predmet Napredne baze podataka
 
 # Pokretanje projekta
-Nakon kloniranja projekta, pre svega treba u root folderu projekta napraviti .env fajl i u njega nalepiti sadrzaj iz .env.example fajla.
+Nakon kloniranja projekta, pre svega treba u root folderu projekta napraviti **.env** fajl i u njega nalepiti sadrzaj iz **.env.example** fajla.
+
+Mozete samo preimenovati **.env.example** u **.env**. Obavezno obrisati .txt ekstenziju ako treba.
+
 Zatim izvrsiti komandu: **docker compose up --build**
 
 Sacekati da se sve izbilduje i da se izvrse skripte iz ./neo4j/init (constraints i test podaci..)
@@ -15,11 +18,12 @@ Proveriti da je sve u redu:
 # Pokretanje UI dela
 Preci u folder /recipe-sharing-ui.
 
-Napraviti .env fajl kao i za api (mozete ga samo preimenovati .example.env u . env). U ovaj fajl nalepiti sadrzaj iz .env fajla. To je url za VITE - VITE_API_URL=http://127.0.0.1:8000  
+Napraviti .env fajl kao i za api (mozete ga samo preimenovati **.example.env** u **.env**). U ovaj fajl nalepiti sadrzaj iz .env fajla. To je url za VITE - VITE_API_URL=http://127.0.0.1:8000  
+
+Instalirati node.js ukoliko nemate, i dodati u PATH
 
 Izvrsiti komande:
 
-  Instalirati node.js i dodati u PATH
 
   **npm install** 
   
