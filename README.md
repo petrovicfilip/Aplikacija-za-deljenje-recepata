@@ -16,6 +16,8 @@ Proveriti da je sve u redu:
 Preci u folder /recipe-sharing-ui.
 Izvrsiti komande:
 
+  Instalirati node.js i dodati u PATH
+
   **npm install** 
   
   **npm run dev**
