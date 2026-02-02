@@ -13,8 +13,11 @@ Proveriti da je sve u redu:
 # Pokretanje UI dela
 Preci u folder /recipe-sharing-ui.
 Izvrsiti komande:
-  **npm install**
+
+  **npm install** 
+  
   **npm run dev**
+  
 UI se pokrece na portu 5173.
 Projekat se zaustavlja i kontejneri se brisu komandom:
 **docker compose down -v**
