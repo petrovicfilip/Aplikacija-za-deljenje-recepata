@@ -315,3 +315,26 @@ def list_users(
         rows = [r.data() for r in session.run(cypher, skip=skip, limit=limit)]
 
     return {"skip": skip, "limit": limit, "results": rows}
+
+@router.delete("/{user_id}")
+def delete_user(user_id: str, driver=Depends(get_driver)):
+    uid = user_id.strip()
+    if not uid:
+        raise HTTPException(status_code=400, detail="user_id is required")
+
+    cypher = """
+    MATCH (u:User {id: $uid})
+    OPTIONAL MATCH (u)-[:CREATED]->(r:Recipe)
+    WITH u, [x IN collect(r) WHERE x IS NOT NULL] AS rs
+    FOREACH (x IN rs | DETACH DELETE x)
+    DETACH DELETE u
+    RETURN size(rs) AS deleted_recipes;
+    """
+
+    with driver.session() as session:
+        rec = session.run(cypher, uid=uid).single()
+
+    if not rec:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return {"user_id": uid, "deleted_recipes": rec["deleted_recipes"]}

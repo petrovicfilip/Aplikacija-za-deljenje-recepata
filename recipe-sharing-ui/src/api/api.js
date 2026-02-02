@@ -129,4 +129,7 @@ export const api = {
   // preporuke
   recommendForUser: (userId, skip = 0, limit = 10) =>
     http(`/recommendations/${encodeURIComponent(userId)}?limit=${limit}&skip=${skip}`),
+ 
+  deleteUser: (userId) =>
+    http(`/users/${encodeURIComponent(userId)}`, { method: "DELETE" }),
 };
